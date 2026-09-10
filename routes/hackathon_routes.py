@@ -28,6 +28,7 @@ def index():
     participated_events = []
     india_page = 1
     global_page = 1
+    db_error = None
     
     try:
         if active_tab == 'tracker':
@@ -49,7 +50,28 @@ def index():
             active_tab = 'tracker'
             hackathons = Hackathon.query.order_by(Hackathon.id.desc()).all()
     except Exception as e:
-        logger.error(f"Error loading tab '{active_tab}': {e}")
+        err_msg = str(e).lower()
+        logger.error(f"Error loading tab '{active_tab}': {e}", exc_info=True)
+        db.session.rollback()
+        
+        # Self-healing: If an UndefinedColumn error occurred, run migration and retry query once
+        if 'does not exist' in err_msg or 'undefinedcolumn' in err_msg or 'no such column' in err_msg:
+            try:
+                logger.info("Missing column detected. Triggering self-healing database migration...")
+                from app import auto_migrate_db
+                auto_migrate_db(db.engine)
+                if active_tab == 'participated':
+                    participated_events = ParticipatedEvent.query.order_by(ParticipatedEvent.id.desc()).all()
+                else:
+                    hackathons = Hackathon.query.order_by(Hackathon.id.desc()).all()
+                logger.info(f"Self-healing migration succeeded! Loaded {len(hackathons or participated_events)} entries.")
+                db_error = None
+            except Exception as retry_err:
+                logger.error(f"Auto-recovery retry failed: {retry_err}", exc_info=True)
+                db.session.rollback()
+                db_error = f"Database schema sync error: {retry_err}"
+        else:
+            db_error = f"Database query error: {e}"
     
     return render_template('dashboard.html',
                            active_tab=active_tab,
@@ -58,7 +80,8 @@ def index():
                            global_events=global_events,
                            participated_events=participated_events,
                            india_page=india_page,
-                           global_page=global_page)
+                           global_page=global_page,
+                           db_error=db_error)
 
 @hackathon_bp.route('/add_hackathon', methods=['POST'])
 def add_hackathon():

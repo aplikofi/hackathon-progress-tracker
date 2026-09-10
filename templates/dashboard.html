@@ -908,6 +908,16 @@
             </a>
         </nav>
 
+        {% if db_error %}
+        <div style="background: rgba(255, 82, 82, 0.12); border: 1px solid rgba(255, 82, 82, 0.4); color: #ff5252; padding: 14px 18px; border-radius: 6px; margin-bottom: 24px; font-size: 13px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 18px;">⚠️</span>
+            <div>
+                <strong>Database Connection Issue:</strong> {{ db_error }}.
+                <div style="font-size: 11px; color: #ff8888; margin-top: 4px;">If deployed on Render, check that your <code>DATABASE_URL</code> in the Render Dashboard Environment settings connects to your Supabase PostgreSQL pooler and contains your actual database password.</div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- ════════════════════════════════════════════ -->
         <!-- TAB: Progress Tracker                        -->
         <!-- ════════════════════════════════════════════ -->

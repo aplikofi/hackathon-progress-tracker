@@ -2,6 +2,9 @@ import os
 from datetime import timedelta
 from dotenv import load_dotenv
 
+# Load environment variables from .env if present
+load_dotenv()
+
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'hackathon-tracker-secret-key')
     
@@ -28,6 +31,12 @@ class Config:
     
     SQLALCHEMY_DATABASE_URI = raw_db_url or 'sqlite:///hackathons.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # SQLAlchemy Engine Pool Settings (Crucial for Supabase connection poolers)
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+    }
     
     # Supabase credentials
     SUPABASE_URL = os.environ.get('SUPABASE_URL')
